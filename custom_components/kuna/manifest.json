@@ -2,9 +2,9 @@
   "domain": "kuna",
   "name": "Kuna",
   "config_flow": true,
-  "documentation": "https://github.com/marthoc/kuna",
+  "documentation": "https://github.com/kevin-david/kuna",
   "dependencies": [],
-  "codeowners": ["@marthoc"],
+  "codeowners": ["@kevin-david"],
   "requirements": ["pykuna==0.6.0"],
   "version": "9.2"
 }
