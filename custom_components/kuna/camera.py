@@ -87,7 +87,7 @@ class KunaCamera(Camera):
         }
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         attributes = {
             ATTR_SERIAL_NUMBER: self._camera.serial_number,
             ATTR_NOTIFICATIONS_ENABLED: self._camera.notifications_enabled,
@@ -118,7 +118,7 @@ class KunaCamera(Camera):
     def _ready_for_snapshot(self, now):
         return self._next_snapshot_at is None or now > self._next_snapshot_at
 
-    async def async_camera_image(self):
+    async def async_camera_image(self, width=None, height=None):
         """Get and return an image from the camera, only once every stream_interval seconds."""
         stream_interval = timedelta(seconds=self._config[CONF_STREAM_INTERVAL])
         now = utcnow()
