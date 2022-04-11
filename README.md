@@ -21,7 +21,7 @@ This custom integration must be installed for it to be loaded by Home Assistant.
 
 ### Installation via HACS
 
-1. Add "marthoc/kuna" as a custom repository in HACS under "Settings".
+1. Add "kevin-david/kuna" as a custom repository in HACS under "Settings".
 2. Search for "Kuna Smart Home Security" under "Integrations" in HACS.
 3. Click "Install".
 4. Proceed with Configuration.
