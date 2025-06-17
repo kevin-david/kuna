@@ -29,9 +29,7 @@ from homeassistant.const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-KUNA_COMPONENTS = ["binary_sensor", "camera", "switch"]
-
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.CAMERA, Platform.SWITCH]
 
 SERVICE_ENABLE_NOTIFICATIONS = "enable_notifications"
 SERVICE_DISABLE_NOTIFICATIONS = "disable_notifications"
@@ -72,8 +70,7 @@ async def async_setup_entry(hass, entry):
 
     hass.data[DOMAIN] = kuna
 
-    for component in KUNA_COMPONENTS:
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     async_track_time_interval(hass, kuna.update, update_interval)
 
