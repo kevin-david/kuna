@@ -24,6 +24,7 @@ from homeassistant.const import (
     CONF_EVENT,
     CONF_PASSWORD,
     EVENT_HOMEASSISTANT_START,
+    Platform
 )
 
 _LOGGER = logging.getLogger(__name__)
