@@ -19,11 +19,11 @@ from .const import (
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.start import async_at_start
 from homeassistant.const import (
     CONF_EMAIL,
     CONF_EVENT,
     CONF_PASSWORD,
-    EVENT_HOMEASSISTANT_START,
     Platform
 )
 
@@ -78,7 +78,8 @@ async def async_setup_entry(hass, entry):
         async_track_time_interval(hass, kuna.scan_for_recordings, recording_interval)
     )
 
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, kuna.scan_for_recordings)
+    # Runs now on a reload; on a cold start, waits for Home Assistant to start.
+    entry.async_on_unload(async_at_start(hass, kuna.scan_for_recordings))
 
     async def enable_notifications(call):
         serial_number = call.data.get(ATTR_SERIAL_NUMBER)
