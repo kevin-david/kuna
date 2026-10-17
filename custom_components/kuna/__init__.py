@@ -72,9 +72,11 @@ async def async_setup_entry(hass, entry):
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    async_track_time_interval(hass, kuna.update, update_interval)
+    entry.async_on_unload(async_track_time_interval(hass, kuna.update, update_interval))
 
-    async_track_time_interval(hass, kuna.scan_for_recordings, recording_interval)
+    entry.async_on_unload(
+        async_track_time_interval(hass, kuna.scan_for_recordings, recording_interval)
+    )
 
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, kuna.scan_for_recordings)
 
@@ -129,28 +131,34 @@ async def async_setup_entry(hass, entry):
     return True
 
 
+async def async_unload_entry(hass, entry):
+    """Unload a Kuna config entry."""
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
+
+    hass.services.async_remove(DOMAIN, SERVICE_ENABLE_NOTIFICATIONS)
+    hass.services.async_remove(DOMAIN, SERVICE_DISABLE_NOTIFICATIONS)
+    hass.data.pop(DOMAIN, None)
+
+    return True
+
+
 class KunaAccount:
     """Represents a Kuna account."""
 
     def __init__(self, hass, email, password, websession, recording_interval):
-        from pykuna import KunaAPI
+        from .api import ReauthenticatingKunaAPI
 
         self._hass = hass
-        self.account = KunaAPI(email, password, websession)
+        self.account = ReauthenticatingKunaAPI(email, password, websession)
         self._recording_interval = recording_interval
         self._update_listeners = []
 
     async def update(self, *_):
-        from pykuna import UnauthorizedError
-
-        try:
-            _LOGGER.debug("Updating Kuna.")
-            await self.account.update()
-            for listener in self._update_listeners:
-                listener()
-        except UnauthorizedError:
-            _LOGGER.error("Kuna API authorization error. Refreshing token...")
-            await self.authenticate()
+        _LOGGER.debug("Updating Kuna.")
+        await self.account.update()
+        for listener in self._update_listeners:
+            listener()
 
     async def authenticate(self) -> bool:
         from async_timeout import timeout
