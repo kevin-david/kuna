@@ -4,6 +4,7 @@ Support for Kuna (www.getkuna.com).
 For more details about this component, please refer to the documentation at
 https://github.com/marthoc/kuna
 """
+import asyncio
 from datetime import timedelta
 import logging
 
@@ -148,10 +149,10 @@ class KunaAccount:
     """Represents a Kuna account."""
 
     def __init__(self, hass, email, password, websession, recording_interval):
-        from .api import ReauthenticatingKunaAPI
+        from pykuna import KunaAPI
 
         self._hass = hass
-        self.account = ReauthenticatingKunaAPI(email, password, websession)
+        self.account = KunaAPI(email, password, websession)
         self._recording_interval = recording_interval
         self._update_listeners = []
 
@@ -162,19 +163,16 @@ class KunaAccount:
             listener()
 
     async def authenticate(self) -> bool:
-        from async_timeout import timeout
-        from asyncio import TimeoutError
-
-        async with timeout(30):
-            try:
+        try:
+            async with asyncio.timeout(30):
                 await self.account.authenticate()
-                return True
-            except TimeoutError:
-                _LOGGER.error("Timeout while authenticating Kuna.")
-                return False
-            except Exception as err:
-                _LOGGER.error("Error while authenticating Kuna: {}".format(err))
-                return False
+            return True
+        except TimeoutError:
+            _LOGGER.error("Timeout while authenticating Kuna.")
+            return False
+        except Exception as err:
+            _LOGGER.error("Error while authenticating Kuna: {}".format(err))
+            return False
 
     def add_update_listener(self, listener):
         self._update_listeners.append(listener)
