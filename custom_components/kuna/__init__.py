@@ -4,6 +4,7 @@ Support for Kuna (www.getkuna.com).
 For more details about this component, please refer to the documentation at
 https://github.com/marthoc/kuna
 """
+import asyncio
 from datetime import timedelta
 import logging
 
@@ -19,11 +20,11 @@ from .const import (
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.start import async_at_start
 from homeassistant.const import (
     CONF_EMAIL,
     CONF_EVENT,
     CONF_PASSWORD,
-    EVENT_HOMEASSISTANT_START,
     Platform
 )
 
@@ -72,11 +73,14 @@ async def async_setup_entry(hass, entry):
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    async_track_time_interval(hass, kuna.update, update_interval)
+    entry.async_on_unload(async_track_time_interval(hass, kuna.update, update_interval))
 
-    async_track_time_interval(hass, kuna.scan_for_recordings, recording_interval)
+    entry.async_on_unload(
+        async_track_time_interval(hass, kuna.scan_for_recordings, recording_interval)
+    )
 
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, kuna.scan_for_recordings)
+    # Runs now on a reload; on a cold start, waits for Home Assistant to start.
+    entry.async_on_unload(async_at_start(hass, kuna.scan_for_recordings))
 
     async def enable_notifications(call):
         serial_number = call.data.get(ATTR_SERIAL_NUMBER)
@@ -129,6 +133,18 @@ async def async_setup_entry(hass, entry):
     return True
 
 
+async def async_unload_entry(hass, entry):
+    """Unload a Kuna config entry."""
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
+
+    hass.services.async_remove(DOMAIN, SERVICE_ENABLE_NOTIFICATIONS)
+    hass.services.async_remove(DOMAIN, SERVICE_DISABLE_NOTIFICATIONS)
+    hass.data.pop(DOMAIN, None)
+
+    return True
+
+
 class KunaAccount:
     """Represents a Kuna account."""
 
@@ -141,31 +157,22 @@ class KunaAccount:
         self._update_listeners = []
 
     async def update(self, *_):
-        from pykuna import UnauthorizedError
-
-        try:
-            _LOGGER.debug("Updating Kuna.")
-            await self.account.update()
-            for listener in self._update_listeners:
-                listener()
-        except UnauthorizedError:
-            _LOGGER.error("Kuna API authorization error. Refreshing token...")
-            await self.authenticate()
+        _LOGGER.debug("Updating Kuna.")
+        await self.account.update()
+        for listener in self._update_listeners:
+            listener()
 
     async def authenticate(self) -> bool:
-        from async_timeout import timeout
-        from asyncio import TimeoutError
-
-        async with timeout(30):
-            try:
+        try:
+            async with asyncio.timeout(30):
                 await self.account.authenticate()
-                return True
-            except TimeoutError:
-                _LOGGER.error("Timeout while authenticating Kuna.")
-                return False
-            except Exception as err:
-                _LOGGER.error("Error while authenticating Kuna: {}".format(err))
-                return False
+            return True
+        except TimeoutError:
+            _LOGGER.error("Timeout while authenticating Kuna.")
+            return False
+        except Exception as err:
+            _LOGGER.error("Error while authenticating Kuna: {}".format(err))
+            return False
 
     def add_update_listener(self, listener):
         self._update_listeners.append(listener)

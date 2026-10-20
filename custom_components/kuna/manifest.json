@@ -5,6 +5,6 @@
   "documentation": "https://github.com/kevin-david/kuna",
   "dependencies": [],
   "codeowners": ["@kevin-david"],
-  "requirements": ["pykuna==0.6.0"],
-  "version": "9.2"
+  "requirements": ["git+https://github.com/kevin-david/pykuna@152e5bec0c1cb97b8a5e08cc4587b713369d0e24#pykuna==0.7.1"],
+  "version": "9.3"
 }

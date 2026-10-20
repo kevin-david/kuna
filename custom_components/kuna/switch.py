@@ -69,7 +69,7 @@ class KunaSwitch(SwitchEntity):
             "name": self._camera.name,
             "manufacturer": MANUFACTURER,
             "model": "Camera",
-            "sw_version": self._camera.build,
+            "sw_version": str(self._camera.build),
         }
 
     def update(self):
